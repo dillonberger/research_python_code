@@ -5,6 +5,8 @@ Created on Tue Aug 23 14:51:40 2016
 @author: dillonberger
 """
 
+
+
 from collections import OrderedDict
 
 import pandas as pd
@@ -15,6 +17,7 @@ from matplotlib import colors
 from matplotlib import cm
 
 
+# We change how matplotlib renders text in our plots
 rcdefaults()
 rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 rc('text', usetex=True)
@@ -23,22 +26,19 @@ rc('text', usetex=True)
 def rad_to_u(radius,percent,interp_list):
     ilist=interp_list[np.isclose(interp_list['R'],radius,atol=5e-1)]
     ilist=ilist[ilist['AGN%']==percent]
-#    print("ilist is ", ilist)
-#    print("u is ", np.array(ilist['U'])[0])
     return np.array(ilist['U'])[0]
     
 #return an array of u's to add to the global dataframe
-params2=pd.read_csv("hybrid_20_percent_agn_grid_model_rosetta.txt", delim_whitespace=True, usecols=["STOP_COLU"])
+params2=pd.read_csv("hybrid_20_percent_agn_grid_model_rosetta.txt", 
+                    delim_whitespace=True, usecols=["STOP_COLU"])
 
-def get_ulist(df, interp_list):
+def append_u_and_col_den(df, interp_list):
     percent=df["%AGN"][0]
 #    print("AGN% is ", percent)
     ulist=np.zeros(len(df['%AGN']))
     for i in range(len(df['%AGN'])):
         ith_row=df.iloc[[i]]
-#        print(ith_row)
         radius=ith_row['radius'][i]
-#        print("radius is ", radius)
         ulist[i]=rad_to_u(radius,percent,interp_list)
     df['U']=ulist
     df['column_den']=params2['STOP_COLU']
@@ -55,7 +55,8 @@ def alt_fix_vals(df,col=19.000000,u=-4.54):
 
 def alt2_fix_vals(df,col=19.000000):
     return df[(df['column_den']==col)]
-    
+
+#labels on columns being read in from the .out file
 columns=["%AGN", "model_num", "FW1", "FW2", "FW3",
 "FW4", "FW60", "FW100", "W1-W2", "W2-W3", "F60nu", "F100nu", "F60/F100"]
 
@@ -66,69 +67,26 @@ ext="_percent.out"
 dfs={}
 
 #array of dataframes indexed by %AGN
-#changed, upper bound on range, path1->path2
 for i in np.arange(0,100,10):
-    dfs[i//10]=pd.read_csv(path1+str(i)+ext, delimiter="   ", header=None, skiprows=1, names=columns)
-    
+    dfs[i//10]=pd.read_csv(path1+str(i)+ext, delimiter="   ", 
+        header=None, skiprows=1, names=columns, engine='python')
+#csv read ins for jarrett box, and how parameters vary    
 box=pd.read_csv("/Users/dillonberger/Documents/research_python/jarrettbox.csv", header=None)
 params=pd.read_csv("/Users/dillonberger/Documents/research_python/model_order_dillon.csv")
 interp=pd.read_csv("/Users/dillonberger/Documents/research_python/U.txt",delim_whitespace=True)
-#print(interp)
+
+#tack on radius and gas density
 for i in range(len(dfs)):
     dfs[i]['radius']=params['radius']
     dfs[i]['n']=params['n']
 
 
 for i in range(0,100,10):
-    get_ulist(dfs[i//10],interp)
+    append_u_and_col_den(dfs[i//10],interp)
 
 for df in dfs.values():
     print(find_uniques(df,'U'))
 
-
-#==============================================================================
-# i=0
-# for ix in range(5):
-#     us=[]
-#     for df in dfs.values():
-#         unique_us=find_uniques(df,'U')
-# #        print(unique_us[0])
-#         df=fix_vals(df,u=unique_us[ix])
-#         norm = colors.Normalize(vmin=np.min(df['model_num']), vmax=np.max(df['model_num']))
-#         mapper = cm.ScalarMappable(norm=norm, cmap=cm.jet)
-#     #    parsed_df=df['W1-W2','W2-W3','model_num']    
-#     #    print(xs,ys)
-#     #    print(df['U'])
-#     #    exported=df[['%AGN','W1-W2','W2-W3','U']]
-#     #    exported.to_csv("%agn_"+str(i)+"_"+"col_dens19.csv",index_label='model_num')
-#         for j in range(len(df)):
-#             us.append(unique_us[ix])
-#             x=np.array(df.iloc[[j]]['W2-W3'])[0]
-#             y=np.array(df.iloc[[j]]['W1-W2'])[0]
-#             model_num=np.array(df.iloc[[j]]['model_num'])[0]
-#             plt.scatter(x,y,label='model_num '+ str(model_num),color=mapper.to_rgba(model_num))
-#         i=i+10
-#     handles, labels = plt.gca().get_legend_handles_labels()
-#     by_label = OrderedDict(zip(labels, handles))
-#     lgd = plt.legend(by_label.values(), by_label.keys(),
-#                     bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0)
-#     #plt.legend()
-#     plt.title('U$\in$['+str(us[0])+", "+str(us[-1])+"]")
-#     plt.xlabel("W2-W3")
-#     plt.ylabel("W1-W2")
-#     plt.tight_layout()
-#     plt.savefig(str(ix)+"plot.pdf",bbox_extra_artists=(lgd,), bbox_inches='tight')
-#     plt.show()    
-#  
-#==============================================================================
-
-#for df in dfs.values():
-#    new_df=fix_vals(df,u=(0,1))
-#    print(new_df)
-
-#_____________________________________
-# We want to take a model# and connect the W points for each AGN%
-# We find the model number by 
 #============
 del dfs[8]
 initial_us=[-4.54,-3.54,-2.54,-1.54,-0.54]
@@ -141,7 +99,6 @@ for ix in range(len(initial_us)):
         xs=[]
         ys=[]
         us=[]
-#        model_locs=[]
         counter=0
         for df in dfs.values():
             #loc_model IS CONSTANT THROUGHOUT THIS LOOP
@@ -159,7 +116,6 @@ for ix in range(len(initial_us)):
         norm = colors.Normalize(vmin=min(model_locs), vmax=max(model_locs))
         mapper = cm.ScalarMappable(norm=norm, cmap=cm.jet)
         print("model locs are ", model_locs)
-#        print('DOES RADIUS VARYYYYY?????',dfs[0].loc[[loc_model]]['radius'], dfs[4].loc[[loc_model]]['radius'])
         label='Radius = '+ str(np.array(dfs[0].loc[[loc_model]]['radius'])[0])+'  n = '+str(np.array(dfs[0].loc[[loc_model]]['n'])[0])        
         color=mapper.to_rgba(loc_model)
         plt.plot(xs,ys,label=label,color=color)
@@ -177,8 +133,5 @@ for ix in range(len(initial_us)):
     bbox_inches='tight'
     plt.savefig("low_z_"+str(ix)+"plot.pdf",bbox_extra_artists=(lgd,),bbox_inches=bbox_inches)
     plt.show()    
-#  
-
-#=========
 
   
