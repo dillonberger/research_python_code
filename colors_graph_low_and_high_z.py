@@ -45,26 +45,28 @@ def append_u_and_col_den(df, interp_list):
     return df
 
 def fix_vals(df,col=19.000000,u=-4.54):
-    return df[(df['U']==u) & (df['column_den']==col)]
+    return df[(df['U']==u) & (df['N(H)']==col)]
     
 def find_uniques(df,label):
     return np.unique(df[label])
 
 def alt_fix_vals(df,col=19.000000,u=-4.54):
-    return df[(df['U']==u) & (df['column_den']==col)]
+    return df[(df['U']==u) & (df['N(H)']==col)]
 
 def alt2_fix_vals(df,col=19.000000):
     return df[(df['column_den']==col)]
 def append_cols(df,calling_df, new_df_label, calling_df_label):
     df[new_df_label]=calling_df[calling_df_label]
 
-    
+
 
 #labels on columns being read in from the .out file
 columns=["%AGN", "model_num", "FW1", "FW2", "FW3",
 "FW4", "FW60", "FW100", "W1-W2", "W2-W3", "F60nu", "F100nu", "F60/F100"]
 
 #.out files are indexed by agn%
+path3="/Users/dillonberger/Z1_results/new_agn_"
+ext3="_percent_Z1.out"
 path1="/Users/dillonberger/Documents/research/low_z_out/alt_agn_"
 path2="/Users/dillonberger/Documents/research/high_z_out/agn_"
 ext="_percent.out"
@@ -73,29 +75,35 @@ dfs={}
 
 #array of dataframes indexed by %AGN
 #WHEN CHANGING FROM PATH 1 TO PATH 2 CHANGE UPPER BOUND ON ARANGE TO 90
-for i in np.arange(0,100,10):
-    dfs[i//10]=pd.read_csv(path1+str(i)+ext, delimiter="   ", 
+for i in np.arange(0,110,20):
+    dfs[i//20]=pd.read_csv(path3+str(i)+ext3, delimiter="   ", 
         header=None, skiprows=1, names=columns, engine='python')
+    print(i//20)
+
 #csv read ins for jarrett box, and how parameters vary    
 box=pd.read_csv("/Users/dillonberger/Documents/research_python/jarrettbox.csv", header=None)
-params=pd.read_csv("/Users/dillonberger/Documents/research_python/model_order_dillon.csv")
-interp=pd.read_csv("/Users/dillonberger/Documents/research_python/U.txt",delim_whitespace=True)
+
+#commented out since they were old models
+#params=pd.read_csv("/Users/dillonberger/Documents/research_python/model_order_dillon.csv")
+#interp=pd.read_csv("/Users/dillonberger/Documents/research_python/U.txt",delim_whitespace=True)
+
+param_2=pd.read_csv("/Users/dillonberger/GitHub/CONTINUA__/grid_parameters.prn", delim_whitespace=True)
 
 #tack on radius and gas density
 
+print(param_2)
 for i in range(len(dfs)):
-    append_cols(dfs[i],params,'radius','radius')
-    append_cols(dfs[i],params,'n','n')
-    append_u_and_col_den(dfs[i], interp)
-    print(find_uniques(dfs[i], 'U'))
+    append_cols(dfs[i],param_2,'R','R')
+    append_cols(dfs[i],param_2,'N(H)','N(H)')
+    append_cols(dfs[i],param_2,'U','U')
 
-unique_coldens=np.unique(dfs[0]['column_den'])
+unique_coldens=np.unique(dfs[0]['N(H)'])
 print(unique_coldens)
-
+zero_us=np.unique(dfs[0]['U'])
 #manually typing the unique ionization parameters for 0% AGN
-us_for_0_percent=[-4.54,-3.54,-2.54,-1.54,-0.54]
+#us_for_0_percent=[-4.54,-3.54,-2.54,-1.54,-0.54]
 
-def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=us_for_0_percent, delete_80=True,high_z=True):
+def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=zero_us, delete_80=False,high_z=True):
 #TURN ON DELETE_80=TRUE IF USING LOW_Z MODEL     
     if delete_80==True:
         for ix in range(len(us_for_0_percent)):
@@ -133,7 +141,7 @@ def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=us_for_0_percent, delete
                 norm = colors.Normalize(vmin=min(model_locs), vmax=max(model_locs))
                 mapper = cm.ScalarMappable(norm=norm, cmap=cm.jet)
 #                print("model locs are ", model_locs)
-                label='Radius = '+ str(np.array(dfs[0].loc[[loc_model]]['radius'])[0])+'  n = '+str(np.array(dfs[0].loc[[loc_model]]['n'])[0])        
+                label='Radius = '+ str(np.array(dfs[0].loc[[loc_model]]['R'])[0])+'  N(H) = '+str(np.array(dfs[0].loc[[loc_model]]['N(H)'])[0])        
                 color=mapper.to_rgba(loc_model)
                 plt.plot(xs,ys,label=label,color=color)
                 iloc_counter+=1
@@ -173,17 +181,18 @@ def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=us_for_0_percent, delete
                     #SPECIAL CONDITIONS FOR THE MIN AND MAX AGN PERCENTEGES                       
                     if(np.array(df.iloc[[0]]['%AGN'])[0]==0):
                         plt.scatter(df.iloc[[iloc_model]]['W2-W3'],df.iloc[[iloc_model]]['W1-W2'],label='0 percent',facecolors='none', edgecolors='k')   
-                    if(np.array(df.iloc[[0]]['%AGN'])[0]==80.0):
-                        plt.scatter(df.iloc[[iloc_model]]['W2-W3'],df.iloc[[iloc_model]]['W1-W2'],label='80 percent',facecolors='none', edgecolors='r')
+                    if(np.array(df.iloc[[0]]['%AGN'])[0]==100.0):
+                        plt.scatter(df.iloc[[iloc_model]]['W2-W3'],df.iloc[[iloc_model]]['W1-W2'],label='100 percent',facecolors='none', edgecolors='r')
                     us.append(np.array(df.iloc[[iloc_model]]['U'])[0])
                     xs.append(np.array(df.iloc[[iloc_model]]['W2-W3'])[0])
                     ys.append(np.array(df.iloc[[iloc_model]]['W1-W2'])[0])
                     counter+=1
                     model_locs=np.unique(df['model_num'])
                 norm = colors.Normalize(vmin=min(model_locs), vmax=max(model_locs))
+                norm = colors.Normalize(0, 279)
                 mapper = cm.ScalarMappable(norm=norm, cmap=cm.jet)
 #                print("model locs are ", model_locs)
-                label='Radius = '+ str(np.array(dfs[0].loc[[loc_model]]['radius'])[0])+'  n = '+str(np.array(dfs[0].loc[[loc_model]]['n'])[0])        
+                label='Radius = '+ str(np.array(dfs[0].loc[[loc_model]]['R'])[0])+'  n = '+str(np.array(dfs[0].loc[[loc_model]]['N(H)'])[0])        
                 color=mapper.to_rgba(loc_model)
                 plt.plot(xs,ys,label=label,color=color)
                 iloc_counter+=1
@@ -203,11 +212,13 @@ def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=us_for_0_percent, delete
             bbox_inches='tight'
             plt.savefig(zlabel+"_"+str(ix)+"column_den_"+str(colden)+"_plot.pdf",bbox_extra_artists=(lgd,),bbox_inches=bbox_inches)
             plt.show()    
-i=0
-for val in unique_coldens:
-    print('iteration is ', i)
-    plot_W_colors(colden=val,delete_80=True,high_z=False)
-    i+=1
+
+plot_W_colors()
+#i=0
+#for val in unique_coldens:
+#    print('iteration is ', i)
+#    plot_W_colors(colden=val,delete_80=False,high_z=True)
+#    i+=1
 
 
   
