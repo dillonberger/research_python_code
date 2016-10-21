@@ -187,7 +187,7 @@ def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=zero_us, delete_80=False
                     xs.append(np.array(df.iloc[[iloc_model]]['W2-W3'])[0])
                     ys.append(np.array(df.iloc[[iloc_model]]['W1-W2'])[0])
                     counter+=1
-                    model_locs=np.unique(df['model_num'])
+                model_locs=np.unique(df['model_num'])
                 norm = colors.Normalize(vmin=min(model_locs), vmax=max(model_locs))
                 norm = colors.Normalize(0, 279)
                 mapper = cm.ScalarMappable(norm=norm, cmap=cm.jet)
@@ -210,15 +210,15 @@ def plot_W_colors(dfs=dfs,colden=19.0, us_for_0_percent=zero_us, delete_80=False
             plt.ylabel("W1-W2")   
             plt.tight_layout()
             bbox_inches='tight'
-            plt.savefig(zlabel+"_"+str(ix)+"column_den_"+str(colden)+"_plot.pdf",bbox_extra_artists=(lgd,),bbox_inches=bbox_inches)
+            #plt.savefig(zlabel+"_"+str(ix)+"column_den_"+str(colden)+"_plot.pdf",bbox_extra_artists=(lgd,),bbox_inches=bbox_inches)
             plt.show()    
 
-plot_W_colors()
-#i=0
-#for val in unique_coldens:
-#    print('iteration is ', i)
-#    plot_W_colors(colden=val,delete_80=False,high_z=True)
-#    i+=1
+#plot_W_colors()
+i=0
+for val in unique_coldens:
+    print('iteration is ', i)
+    plot_W_colors(colden=val,delete_80=False,high_z=True)
+    i+=1
 
 
   
